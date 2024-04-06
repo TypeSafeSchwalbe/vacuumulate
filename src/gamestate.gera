@@ -1,17 +1,25 @@
 
 mod vacuumulate::gamestate
 
-use std::math
+use vacuumulate::res
+
+use std::(math, arr, iter, time)
+use std::rng::Random
 use obem::lav
 use obem::input
 
 pub proc create() {
-    return {
+    var gamestate = {
+        rng = Random::new(time::now_utc()),
         robot = {
             position = [0.0, 0.0, 0.0],
             rotation = 0.0
-        }
+        },
+        debris = [],
+        score = 0
     }
+    gamestate |> add_debris(100)
+    return gamestate
 }
 
 var ROBOT_TURN_SPEED = 1.0
@@ -33,6 +41,53 @@ proc update_robot(robot) {
         |> lav::add(velocity)
 }
 
+proc create_debris(gamestate) {
+    var textures = [
+        res::DIRT_TEXTURE,
+        res::DUST_TEXTURE
+    ]
+    var texture_idx = as_int(gamestate.rng .> flt_in(0.0, 9999.0))
+        % length(textures)
+    return {
+        position = [
+            gamestate.rng .> flt_in(-9.0, 9.0),
+            0.01, 
+            gamestate.rng .> flt_in(-4.0, 4.0)
+        ],
+        rotation = gamestate.rng .> flt_in(0.0, math::TAU),
+        texture = textures[texture_idx] .> get()
+    }
+}
+
+proc add_debris(gamestate, count) {
+    var added = iter::repeat_over(|| create_debris(gamestate))
+        |> iter::take(count)
+        |> arr::collect()
+    gamestate.debris = gamestate.debris
+        |> arr::concat(added)
+}
+
+proc picked_up(pos, robot) {
+    var distance = robot.position
+        |> lav::sub(pos)
+        |> lav::len()
+    return distance < 0.4
+}
+
+proc update_debris(gamestate) {
+    var added_score = gamestate.debris
+        |> arr::iter()
+        |> iter::filter(|debris| picked_up(debris.position, gamestate.robot))
+        |> iter::count()
+    gamestate.score = gamestate.score
+        + added_score
+    gamestate.debris = gamestate.debris
+        |> arr::iter()
+        |> iter::filter(|debris| !picked_up(debris.position, gamestate.robot))
+        |> arr::collect()
+}
+
 pub proc update(gamestate) {
     gamestate.robot |> update_robot()
+    gamestate |> update_debris()
 }

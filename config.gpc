@@ -1,5 +1,5 @@
 name = "vacuumulate"
-description = "A simple game about vacuum robots."
+description = "A simple game about a vacuum robot."
 authors = ["TypeSafeSchwalbe"]
 version = "0.1"
 target = "js"

@@ -8,16 +8,27 @@ pub var ROBOT_TEXTURE = "res/robot.png"
 pub var ROBOT_MODEL = "res/robot.obj"
     |> ObjModel::new([ObjModel::POSITION, ObjModel::UV])
 
-pub var FLOOR_TEXTURE = "res/floor.png"
+pub var ROOM_TEXTURE = "res/room.png"
     |> Image::new()
-pub var FLOOR_MODEL = "res/floor.obj"
+pub var ROOM_MODEL = "res/room.obj"
     |> ObjModel::new([ObjModel::POSITION, ObjModel::UV])
+
+pub var DEBRIS_MODEL = "res/debris.obj"
+    |> ObjModel::new([ObjModel::POSITION, ObjModel::UV])
+
+pub var DUST_TEXTURE = "res/dust.png"
+    |> Image::new()
+pub var DIRT_TEXTURE = "res/dirt.png"
+    |> Image::new()
 
 pub proc on_load(callback) {
     obem::res::on_load([
         ROBOT_TEXTURE .> load(),
         ROBOT_MODEL .> load(),
-        FLOOR_TEXTURE .> load(),
-        FLOOR_MODEL .> load()
+        ROOM_TEXTURE .> load(),
+        ROOM_MODEL .> load(),
+        DEBRIS_MODEL .> load(),
+        DUST_TEXTURE .> load(),
+        DIRT_TEXTURE .> load()
     ], callback)
 }

@@ -2,6 +2,8 @@
 mod vacuumulate::renderer
 
 use vacuumulate::res
+
+use std::(arr, iter)
 use obem::gfx::(Shader, Surface)
 use obem::(lam, lav)
 
@@ -36,11 +38,11 @@ pub proc create() {
 }
 
 proc set_camera(renderer) {
-    var fov = std::math::PI * 0.5
+    var fov = std::math::PI * 0.3
     var aspect_ratio = (Surface::main() .> width() |> as_flt())
         / (Surface::main() .> height() |> as_flt())
-    var pos = [0.0, 7.5, 5.0]
-    var look_at = [0.0, 0.0, 0.0]
+    var pos = [0.0, 10.0, 10.0]
+    var look_at = [0.0, 0.0, -3.0]
     var up = [0.0, 1.0, 0.0]
     var camera_transform = lam::perspective(fov, aspect_ratio, 0.01, 1000.0)
        |> lam::mul(lam::look_at(pos, look_at, up))
@@ -53,10 +55,12 @@ proc render_mesh(renderer, model_matrix, texture, mesh) {
     Surface::main() .> draw_mesh(mesh, [3, 2], renderer.shader, true)
 }
 
-proc render_floor(renderer) {
+proc render_room(renderer) {
     renderer |> render_mesh(
-        lam::translation([0.0, -0.01, 0.0]),
-        res::FLOOR_TEXTURE .> get(), res::FLOOR_MODEL .> get()
+        lam::iden4x4()
+            |> lam::scale([10.0, 10.0, 10.0, 1.0])
+            |> lam::mul(lam::translation([0.0, -0.01, 0.0])),
+        res::ROOM_TEXTURE .> get(), res::ROOM_MODEL .> get()
     )
 }
 
@@ -69,11 +73,23 @@ proc render_robot(renderer, robot) {
     )
 }
 
+proc render_debris(renderer, debris) {
+    var model_matrix = lam::translation(debris.position)
+        |> lam::rotate_y(debris.rotation)
+    renderer |> render_mesh(
+        model_matrix, debris.texture, res::DEBRIS_MODEL .> get()
+    )
+}
+
 pub proc render(renderer, gamestate) {
-    var background = [99.0, 155.0, 255.0, 255.0]
+    var background = [95.0, 87.0, 79.0, 255.0]
         |> lav::scale(1.0 / 255.0)
     Surface::main() .> clear_color(background)
     renderer |> set_camera()
-    renderer |> render_floor()
+    renderer |> render_room()
     renderer |> render_robot(gamestate.robot)
+    gamestate.debris
+        |> arr::iter()
+        |> iter::for_each(|debris| renderer |> render_debris(debris))
+
 }
