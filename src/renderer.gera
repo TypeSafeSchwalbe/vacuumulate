@@ -4,11 +4,12 @@ mod vacuumulate::renderer
 use vacuumulate::res
 
 use std::(arr, iter)
-use obem::gfx::(Shader, Surface)
+use obem::gfx::(Shader, Surface, Mesh)
 use obem::(lam, lav)
 
 pub proc create() {
     return {
+        object_camera = lam::iden4x4(),
         shader = Shader::new(
             "
                 attribute vec3 pos;
@@ -37,30 +38,66 @@ pub proc create() {
     }
 }
 
-proc set_camera(renderer) {
+proc set_object_camera(renderer) {
     var fov = std::math::PI * 0.3
     var aspect_ratio = (Surface::main() .> width() |> as_flt())
         / (Surface::main() .> height() |> as_flt())
     var pos = [0.0, 10.0, 10.0]
     var look_at = [0.0, 0.0, -3.0]
     var up = [0.0, 1.0, 0.0]
-    var camera_transform = lam::perspective(fov, aspect_ratio, 0.01, 1000.0)
+    var camera_matrix = lam::perspective(fov, aspect_ratio, 0.01, 1000.0)
        |> lam::mul(lam::look_at(pos, look_at, up))
-    renderer.shader .> uniform_mat("u_view_projection", camera_transform)
+    renderer.object_camera = camera_matrix
 }
 
-proc render_mesh(renderer, model_matrix, texture, mesh) {
+proc render_object(renderer, model_matrix, texture, mesh, depth_test) {
     renderer.shader .> uniform_mat("u_model", model_matrix)
     renderer.shader .> uniform_tex("u_tex", texture)
-    Surface::main() .> draw_mesh(mesh, [3, 2], renderer.shader, true)
+    renderer.shader .> uniform_mat("u_view_projection", renderer.object_camera)
+    Surface::main() 
+        .> draw_mesh(mesh, [3, 2], renderer.shader, depth_test)
+}
+
+proc as_ndc(pixel_pos) {
+    return pixel_pos
+        |> lav::div([
+            Surface::main() .> width() |> as_flt(),
+            Surface::main() .> height() |> as_flt()
+        ])
+        |> lav::mul([2.0, 2.0]) |> lav::sub([1.0, 1.0])
+        |> lav::mul([1.0, -1.0])
+}
+
+proc render_sprite(renderer, position, size, texture) {
+    // this could be optimized by using a singular mesh with 
+    // a model matrix and an orthographic projection matrix
+    var top_left = position |> as_ndc()
+    var bottom_right = position |> lav::add(size) |> as_ndc()
+    var mesh = Mesh::new(
+        [
+            top_left[0],     top_left[1],     0.0, 0.0, 1.0, 
+            bottom_right[0], top_left[1],     0.0, 1.0, 1.0,
+            top_left[0],     bottom_right[1], 0.0, 0.0, 0.0,
+            bottom_right[0], bottom_right[1], 0.0, 1.0, 0.0
+        ], [
+            2, 1, 0,
+            3, 1, 2
+        ]
+    )
+    renderer.shader .> uniform_mat("u_model", lam::iden4x4())
+    renderer.shader .> uniform_tex("u_tex", texture)
+    renderer.shader .> uniform_mat("u_view_projection", lam::iden4x4())
+    Surface::main() 
+        .> draw_mesh(mesh, [3, 2], renderer.shader, false)
 }
 
 proc render_room(renderer) {
-    renderer |> render_mesh(
+    renderer |> render_object(
         lam::iden4x4()
             |> lam::scale([10.0, 10.0, 10.0, 1.0])
             |> lam::mul(lam::translation([0.0, -0.01, 0.0])),
-        res::ROOM_TEXTURE .> get(), res::ROOM_MODEL .> get()
+        res::ROOM_TEXTURE .> get(), res::ROOM_MODEL .> get(),
+        true
     )
 }
 
@@ -68,24 +105,47 @@ proc render_robot(renderer, robot) {
     var model_matrix = lam::translation(robot.position)
         |> lam::rotate_y(-robot.rotation)
         |> lam::rotate_y(std::math::PI)
-    renderer |> render_mesh(
-        model_matrix, res::ROBOT_TEXTURE .> get(), res::ROBOT_MODEL .> get()
+    renderer |> render_object(
+        model_matrix, res::ROBOT_TEXTURE .> get(), res::ROBOT_MODEL .> get(),
+        true
     )
 }
 
 proc render_debris(renderer, debris) {
     var model_matrix = lam::translation(debris.position)
         |> lam::rotate_y(debris.rotation)
-    renderer |> render_mesh(
-        model_matrix, debris.texture, res::DEBRIS_MODEL .> get()
+    renderer |> render_object(
+        model_matrix, debris.texture, res::DEBRIS_MODEL .> get(),
+        true
     )
 }
 
 proc render_obstacle(renderer, obstacle) {
     var model_matrix = lam::translation(obstacle.position)
         |> lam::rotate_y(obstacle.rotation)
-    renderer |> render_mesh(
-        model_matrix, obstacle.texture, obstacle.model
+    renderer |> render_object(
+        model_matrix, obstacle.texture, obstacle.model,
+        true
+    )
+}
+
+proc render_smoke(renderer, smoke) {
+    var scale_factor = 1.0 + smoke.position[1]
+    var model_matrix = lam::translation(smoke.position)
+            |> lam::scale([scale_factor, scale_factor, scale_factor, 1.0])
+    renderer |> render_object(
+        model_matrix, res::SMOKE_TEXTURE .> get(), res::SMOKE_MODEL .> get(),
+        false
+    )
+}
+
+proc render_explosion(renderer, explosion) {
+    var model_matrix = lam::translation(explosion.position)
+            |> lam::scale([explosion.size, explosion.size, explosion.size, 1.0])
+    renderer |> render_object(
+        model_matrix,
+        res::EXPLOSION_TEXTURE .> get(), res::EXPLOSION_MODEL .> get(),
+        false
     )
 }
 
@@ -93,7 +153,7 @@ pub proc render(renderer, gamestate) {
     var background = [95.0, 87.0, 79.0, 255.0]
         |> lav::scale(1.0 / 255.0)
     Surface::main() .> clear_color(background)
-    renderer |> set_camera()
+    renderer |> set_object_camera()
     renderer |> render_room()
     renderer |> render_robot(gamestate.robot)
     gamestate.debris
@@ -101,5 +161,11 @@ pub proc render(renderer, gamestate) {
         |> iter::for_each(|debris| renderer |> render_debris(debris))
     gamestate.obstacles
         |> arr::iter()
-        |> iter::for_each(|debris| renderer |> render_obstacle(debris))
+        |> iter::for_each(|obstacle| renderer |> render_obstacle(obstacle))
+    gamestate.smoke
+        |> arr::iter()
+        |> iter::for_each(|smoke| renderer |> render_smoke(smoke))
+    case gamestate.explosion {
+        #some explosion -> renderer |> render_explosion(explosion)
+    } else {}
 }

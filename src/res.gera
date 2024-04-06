@@ -30,6 +30,16 @@ pub var PENCIL_MODEL = "res/pencil.obj"
 pub var PENCIL_TEXTURE = "res/pencil.png"
     |> Image::new()
 
+pub var SMOKE_MODEL = "res/smoke.obj"
+    |> ObjModel::new([ObjModel::POSITION, ObjModel::UV])
+pub var SMOKE_TEXTURE = "res/smoke.png"
+    |> Image::new()
+
+pub var EXPLOSION_MODEL = "res/explosion.obj"
+    |> ObjModel::new([ObjModel::POSITION, ObjModel::UV])
+pub var EXPLOSION_TEXTURE = "res/explosion.png"
+    |> Image::new()
+
 pub proc on_load(callback) {
     obem::res::on_load([
         ROBOT_TEXTURE .> load(),
@@ -46,6 +56,12 @@ pub proc on_load(callback) {
         APPLE_TEXTURE .> load(),
 
         PENCIL_MODEL .> load(),
-        PENCIL_TEXTURE .> load()
+        PENCIL_TEXTURE .> load(),
+
+        SMOKE_MODEL .> load(),
+        SMOKE_TEXTURE .> load(),
+
+        EXPLOSION_MODEL .> load(),
+        EXPLOSION_TEXTURE .> load()
     ], callback)
 }

@@ -16,8 +16,11 @@ pub proc create() {
             rotation = 0.0,
             update = || {}
         },
+        update_collectables = true,
         debris = [],
         obstacles = [],
+        smoke = [],
+        explosion = #none unit,
         score = 0
     }
     gamestate.robot.update = robot_movement(gamestate.robot)
@@ -81,10 +84,45 @@ proc robot_reversal(robot) {
     }
 }
 
-proc robot_crashed(robot) {
+proc robot_vibrate(gamestate) {
+    var robot = gamestate.robot
+    var start_position = robot.position
+    var start_time = time::now_utc()
+    var duration = 5 |> time::seconds()
     return || {
-
+        robot.position = start_position
+            |> lav::add(lav::scale([
+                gamestate.rng .> flt_in(-1.0, 1.0),
+                0.0,
+                gamestate.rng .> flt_in(-1.0, 1.0)
+            ], obem::delta_time()))
+        case time::now_utc() > start_time + duration -> {
+            robot.update = robot_smoke(gamestate)
+        }
     }
+}
+
+proc robot_smoke(gamestate) {
+    var robot = gamestate.robot
+    var start_time = time::now_utc()
+    var duration = 5 |> time::seconds()
+    return || {
+        var next_smoke_time = start_time
+            + (length(gamestate.smoke) |> time::seconds())
+        case time::now_utc() > next_smoke_time -> {
+            gamestate.smoke = gamestate.smoke
+                |> arr::concat([create_smoke(gamestate, robot.position)])
+        }
+        case time::now_utc() > start_time + duration -> {
+            robot.update = robot_explode(gamestate)
+        }
+    }
+}
+
+proc robot_explode(gamestate) {
+    var robot = gamestate.robot
+    gamestate.explosion = #some create_explosion(gamestate, robot.position)
+    return || {}
 }
 
 proc create_debris(gamestate) {
@@ -121,6 +159,7 @@ proc picked_up(pos, robot) {
 }
 
 proc update_debris(gamestate) {
+    case !gamestate.update_collectables -> return unit
     var added_score = gamestate.debris
         |> arr::iter()
         |> iter::filter(|debris| picked_up(debris.position, gamestate.robot))
@@ -164,23 +203,69 @@ proc add_obstacles(gamestate, count) {
 }
 
 proc update_obstacles(gamestate) {
+    case !gamestate.update_collectables -> return unit
+    case gamestate.score / 10 > length(gamestate.obstacles) -> {
+        gamestate |> add_obstacles(1)
+    }
     var collided = gamestate.obstacles
         |> arr::iter()
         |> iter::filter(|o| picked_up(o.position, gamestate.robot))
         |> iter::next()
         |> opt::is_some()
-    case collided -> gamestate.robot.update = robot_crashed(gamestate.robot)
+    case collided -> {
+        gamestate.robot.update = robot_vibrate(gamestate)
+        gamestate.update_collectables = false
+    }
     gamestate.obstacles = gamestate.obstacles
         |> arr::iter()
         |> iter::filter(|o| !picked_up(o.position, gamestate.robot))
         |> arr::collect()
-    case gamestate.score / 10 > length(gamestate.obstacles) -> {
-        gamestate |> add_obstacles(1)
+}
+
+proc create_smoke(gamestate, position) {
+    return {
+        position = position
+            |> lav::add([
+                gamestate.rng .> flt_in(-0.5, 0.5),
+                0.0,
+                gamestate.rng .> flt_in(-0.5, 0.5)
+            ]),
     }
+}
+
+var SMOKE_RISE_SPEED = 0.5
+
+proc update_smoke(gamestate) {
+    gamestate.smoke |> arr::iter() |> iter::for_each(|smoke| {
+        smoke.position[1] = smoke.position[1]
+            + SMOKE_RISE_SPEED * obem::delta_time()
+    })
+}
+
+proc create_explosion(gamestate, position) {
+    return {
+        position = position,
+        size = 1.0
+    }
+}
+
+var EXPLOSION_GROW_SPEED = 30.0
+
+proc update_explosion(gamestate) {
+    case gamestate.explosion {
+        #some explosion -> {
+            case explosion.size < 5000.0 -> {
+                explosion.size = explosion.size
+                * (1.0 + EXPLOSION_GROW_SPEED * obem::delta_time())
+            }
+        }
+    } else {}
 }
 
 pub proc update(gamestate) {
     gamestate.robot.update()
     gamestate |> update_debris()
     gamestate |> update_obstacles()
+    gamestate |> update_smoke()
+    gamestate |> update_explosion()
 }

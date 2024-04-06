@@ -5,6 +5,6 @@ version = "0.1"
 target = "js"
 dependencies = [
     <https://github.com/geralang/std>
-    <https://github.com/TypeSafeSchwalbe/obem>
+    <https://github.com/typesafeschwalbe/obem>
 ]
 main = "vacuumulate::main"
