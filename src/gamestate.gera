@@ -3,7 +3,7 @@ mod vacuumulate::gamestate
 
 use vacuumulate::res
 
-use std::(math, arr, iter, time)
+use std::(math, arr, iter, time, opt)
 use std::rng::Random
 use obem::lav
 use obem::input
@@ -13,32 +13,62 @@ pub proc create() {
         rng = Random::new(time::now_utc()),
         robot = {
             position = [0.0, 0.0, 0.0],
-            rotation = 0.0
+            rotation = 0.0,
+            update = || {}
         },
         debris = [],
         score = 0
     }
+    gamestate.robot.update = robot_movement(gamestate.robot)
     gamestate |> add_debris(100)
     return gamestate
+}
+
+proc in_room(pos, radius) {
+    return pos[0] - radius > -10.0
+        && pos[0] + radius < 10.0
+        && pos[2] - radius > -5.0
+        && pos[2] + radius < 5.0
 }
 
 var ROBOT_TURN_SPEED = 1.0
 var ROBOT_MOVEMENT_SPEED = 1.5
 
-proc update_robot(robot) {
-    case input::key(input::KEY_ARROW_LEFT) -> {
-        robot.rotation = robot.rotation
-            + ROBOT_TURN_SPEED * obem::delta_time()
+proc robot_movement(robot) {
+    return || {
+        case input::key(input::KEY_ARROW_LEFT) -> {
+            robot.rotation = robot.rotation
+                + ROBOT_TURN_SPEED * obem::delta_time()
+        }
+        case input::key(input::KEY_ARROW_RIGHT) -> {
+            robot.rotation = robot.rotation
+                - ROBOT_TURN_SPEED * obem::delta_time()
+        }
+        var velocity = [
+                math::cos(robot.rotation), 
+                0.0, 
+                math::sin(robot.rotation)
+        ] |> lav::scale(ROBOT_MOVEMENT_SPEED)
+            |> lav::scale(obem::delta_time())
+        robot.position = robot.position
+            |> lav::add(velocity)
+        case !in_room(robot.position, 0.6) -> {
+            robot.update = robot_reversal(robot)
+        }
     }
-    case input::key(input::KEY_ARROW_RIGHT) -> {
-        robot.rotation = robot.rotation
-            - ROBOT_TURN_SPEED * obem::delta_time()
+}
+
+proc robot_reversal(robot) {
+    var start_time = time::now_utc()
+    var duration = 2 |> time::seconds()
+    var start_rotation = robot.rotation
+    return || {
+        var t = as_flt(time::now_utc() - start_time) / as_flt(duration)
+        robot.rotation = start_rotation + t * math::PI
+        case t >= 1.0 -> {
+            robot.update = robot_movement(robot)
+        }
     }
-    var velocity = [math::cos(robot.rotation), 0.0, math::sin(robot.rotation)]
-        |> lav::scale(ROBOT_MOVEMENT_SPEED)
-        |> lav::scale(obem::delta_time())
-    robot.position = robot.position
-        |> lav::add(velocity)
 }
 
 proc create_debris(gamestate) {
@@ -88,6 +118,6 @@ proc update_debris(gamestate) {
 }
 
 pub proc update(gamestate) {
-    gamestate.robot |> update_robot()
+    gamestate.robot.update()
     gamestate |> update_debris()
 }
