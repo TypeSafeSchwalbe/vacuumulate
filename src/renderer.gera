@@ -81,6 +81,14 @@ proc render_debris(renderer, debris) {
     )
 }
 
+proc render_obstacle(renderer, obstacle) {
+    var model_matrix = lam::translation(obstacle.position)
+        |> lam::rotate_y(obstacle.rotation)
+    renderer |> render_mesh(
+        model_matrix, obstacle.texture, obstacle.model
+    )
+}
+
 pub proc render(renderer, gamestate) {
     var background = [95.0, 87.0, 79.0, 255.0]
         |> lav::scale(1.0 / 255.0)
@@ -91,5 +99,7 @@ pub proc render(renderer, gamestate) {
     gamestate.debris
         |> arr::iter()
         |> iter::for_each(|debris| renderer |> render_debris(debris))
-
+    gamestate.obstacles
+        |> arr::iter()
+        |> iter::for_each(|debris| renderer |> render_obstacle(debris))
 }

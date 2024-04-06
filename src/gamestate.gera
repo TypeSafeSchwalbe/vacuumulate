@@ -17,10 +17,11 @@ pub proc create() {
             update = || {}
         },
         debris = [],
+        obstacles = [],
         score = 0
     }
     gamestate.robot.update = robot_movement(gamestate.robot)
-    gamestate |> add_debris(100)
+    gamestate |> add_debris(20)
     return gamestate
 }
 
@@ -34,6 +35,14 @@ proc in_room(pos, radius) {
 var ROBOT_TURN_SPEED = 1.0
 var ROBOT_MOVEMENT_SPEED = 1.5
 
+proc robot_direction(robot) {
+    return [
+        math::cos(robot.rotation), 
+        0.0, 
+        math::sin(robot.rotation)
+    ]
+}
+
 proc robot_movement(robot) {
     return || {
         case input::key(input::KEY_ARROW_LEFT) -> {
@@ -44,11 +53,9 @@ proc robot_movement(robot) {
             robot.rotation = robot.rotation
                 - ROBOT_TURN_SPEED * obem::delta_time()
         }
-        var velocity = [
-                math::cos(robot.rotation), 
-                0.0, 
-                math::sin(robot.rotation)
-        ] |> lav::scale(ROBOT_MOVEMENT_SPEED)
+        var velocity = robot
+            |> robot_direction()
+            |> lav::scale(ROBOT_MOVEMENT_SPEED)
             |> lav::scale(obem::delta_time())
         robot.position = robot.position
             |> lav::add(velocity)
@@ -67,7 +74,16 @@ proc robot_reversal(robot) {
         robot.rotation = start_rotation + t * math::PI
         case t >= 1.0 -> {
             robot.update = robot_movement(robot)
+            // give it a small boost so it doesn't get stuck
+            robot.position = robot.position
+                |> lav::add(robot |> robot_direction() |> lav::scale(0.1))
         }
+    }
+}
+
+proc robot_crashed(robot) {
+    return || {
+
     }
 }
 
@@ -115,9 +131,56 @@ proc update_debris(gamestate) {
         |> arr::iter()
         |> iter::filter(|debris| !picked_up(debris.position, gamestate.robot))
         |> arr::collect()
+    case length(gamestate.debris) < 20 -> {
+        gamestate |> add_debris(5)
+    }
+}
+
+proc create_obstacle(gamestate) {
+    var variants = [
+        { model = res::APPLE_MODEL, texture = res::APPLE_TEXTURE },
+        { model = res::PENCIL_MODEL, texture = res::PENCIL_TEXTURE }
+    ]
+    var variant_idx = as_int(gamestate.rng .> flt_in(0.0, 9999.0))
+        % length(variants)
+    return {
+        position = [
+            gamestate.rng .> flt_in(-9.0, 9.0),
+            0.01, 
+            gamestate.rng .> flt_in(-4.0, 4.0)
+        ],
+        rotation = gamestate.rng .> flt_in(0.0, math::TAU),
+        model = variants[variant_idx].model .> get(),
+        texture = variants[variant_idx].texture .> get()
+    }
+}
+
+proc add_obstacles(gamestate, count) {
+    var added = iter::repeat_over(|| create_obstacle(gamestate))
+        |> iter::take(count)
+        |> arr::collect()
+    gamestate.obstacles = gamestate.obstacles
+        |> arr::concat(added)
+}
+
+proc update_obstacles(gamestate) {
+    var collided = gamestate.obstacles
+        |> arr::iter()
+        |> iter::filter(|o| picked_up(o.position, gamestate.robot))
+        |> iter::next()
+        |> opt::is_some()
+    case collided -> gamestate.robot.update = robot_crashed(gamestate.robot)
+    gamestate.obstacles = gamestate.obstacles
+        |> arr::iter()
+        |> iter::filter(|o| !picked_up(o.position, gamestate.robot))
+        |> arr::collect()
+    case gamestate.score / 10 > length(gamestate.obstacles) -> {
+        gamestate |> add_obstacles(1)
+    }
 }
 
 pub proc update(gamestate) {
     gamestate.robot.update()
     gamestate |> update_debris()
+    gamestate |> update_obstacles()
 }

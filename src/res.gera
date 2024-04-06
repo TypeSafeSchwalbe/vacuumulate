@@ -15,20 +15,37 @@ pub var ROOM_MODEL = "res/room.obj"
 
 pub var DEBRIS_MODEL = "res/debris.obj"
     |> ObjModel::new([ObjModel::POSITION, ObjModel::UV])
-
 pub var DUST_TEXTURE = "res/dust.png"
     |> Image::new()
 pub var DIRT_TEXTURE = "res/dirt.png"
+    |> Image::new()
+
+pub var APPLE_MODEL = "res/apple.obj"
+    |> ObjModel::new([ObjModel::POSITION, ObjModel::UV])
+pub var APPLE_TEXTURE = "res/apple.png"
+    |> Image::new()
+
+pub var PENCIL_MODEL = "res/pencil.obj"
+    |> ObjModel::new([ObjModel::POSITION, ObjModel::UV])
+pub var PENCIL_TEXTURE = "res/pencil.png"
     |> Image::new()
 
 pub proc on_load(callback) {
     obem::res::on_load([
         ROBOT_TEXTURE .> load(),
         ROBOT_MODEL .> load(),
+
         ROOM_TEXTURE .> load(),
         ROOM_MODEL .> load(),
+
         DEBRIS_MODEL .> load(),
         DUST_TEXTURE .> load(),
-        DIRT_TEXTURE .> load()
+        DIRT_TEXTURE .> load(),
+
+        APPLE_MODEL .> load(),
+        APPLE_TEXTURE .> load(),
+
+        PENCIL_MODEL .> load(),
+        PENCIL_TEXTURE .> load()
     ], callback)
 }
