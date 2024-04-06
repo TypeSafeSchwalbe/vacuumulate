@@ -1,0 +1,79 @@
+
+mod vacuumulate::renderer
+
+use vacuumulate::res
+use obem::gfx::(Shader, Surface)
+use obem::(lam, lav)
+
+pub proc create() {
+    return {
+        shader = Shader::new(
+            "
+                attribute vec3 pos;
+                attribute vec2 uv;
+                varying vec2 f_uv;
+
+                uniform mat4 u_view_projection;
+                uniform mat4 u_model;
+
+                void main(void) {
+                    f_uv = uv;
+                    gl_Position = u_view_projection * u_model * vec4(pos, 1.0);
+                }
+            ",
+            "
+                precision mediump float;
+                varying vec2 f_uv;
+                
+                uniform sampler2D u_tex; 
+
+                void main(void) {
+                    gl_FragColor = texture2D(u_tex, f_uv);
+                }
+            "
+        )
+    }
+}
+
+proc set_camera(renderer) {
+    var fov = std::math::PI * 0.5
+    var aspect_ratio = (Surface::main() .> width() |> as_flt())
+        / (Surface::main() .> height() |> as_flt())
+    var pos = [0.0, 7.5, 5.0]
+    var look_at = [0.0, 0.0, 0.0]
+    var up = [0.0, 1.0, 0.0]
+    var camera_transform = lam::perspective(fov, aspect_ratio, 0.01, 1000.0)
+       |> lam::mul(lam::look_at(pos, look_at, up))
+    renderer.shader .> uniform_mat("u_view_projection", camera_transform)
+}
+
+proc render_mesh(renderer, model_matrix, texture, mesh) {
+    renderer.shader .> uniform_mat("u_model", model_matrix)
+    renderer.shader .> uniform_tex("u_tex", texture)
+    Surface::main() .> draw_mesh(mesh, [3, 2], renderer.shader, true)
+}
+
+proc render_floor(renderer) {
+    renderer |> render_mesh(
+        lam::translation([0.0, -0.01, 0.0]),
+        res::FLOOR_TEXTURE .> get(), res::FLOOR_MODEL .> get()
+    )
+}
+
+proc render_robot(renderer, robot) {
+    var model_matrix = lam::translation(robot.position)
+        |> lam::rotate_y(-robot.rotation)
+        |> lam::rotate_y(std::math::PI)
+    renderer |> render_mesh(
+        model_matrix, res::ROBOT_TEXTURE .> get(), res::ROBOT_MODEL .> get()
+    )
+}
+
+pub proc render(renderer, gamestate) {
+    var background = [99.0, 155.0, 255.0, 255.0]
+        |> lav::scale(1.0 / 255.0)
+    Surface::main() .> clear_color(background)
+    renderer |> set_camera()
+    renderer |> render_floor()
+    renderer |> render_robot(gamestate.robot)
+}

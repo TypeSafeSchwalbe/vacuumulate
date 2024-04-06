@@ -1,0 +1,23 @@
+
+mod vacuumulate::res
+
+use obem::res::*
+
+pub var ROBOT_TEXTURE = "res/robot.png"
+    |> Image::new()
+pub var ROBOT_MODEL = "res/robot.obj"
+    |> ObjModel::new([ObjModel::POSITION, ObjModel::UV])
+
+pub var FLOOR_TEXTURE = "res/floor.png"
+    |> Image::new()
+pub var FLOOR_MODEL = "res/floor.obj"
+    |> ObjModel::new([ObjModel::POSITION, ObjModel::UV])
+
+pub proc on_load(callback) {
+    obem::res::on_load([
+        ROBOT_TEXTURE .> load(),
+        ROBOT_MODEL .> load(),
+        FLOOR_TEXTURE .> load(),
+        FLOOR_MODEL .> load()
+    ], callback)
+}

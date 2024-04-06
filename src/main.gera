@@ -1,0 +1,24 @@
+
+mod vacuumulate
+
+use vacuumulate::renderer
+use vacuumulate::gamestate
+
+proc main() {
+    obem::on_init(|| {
+        vacuumulate::res::on_load(init)
+    })
+}
+
+proc init() {
+    var gamestate = gamestate::create()
+    var renderer = renderer::create()
+    loop(gamestate, renderer) |> obem::on_frame()
+}
+
+proc loop(gamestate, renderer) {
+    return || {
+        gamestate |> gamestate::update()
+        renderer |> renderer::render(gamestate)
+    }
+}

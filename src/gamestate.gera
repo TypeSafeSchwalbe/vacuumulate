@@ -1,0 +1,38 @@
+
+mod vacuumulate::gamestate
+
+use std::math
+use obem::lav
+use obem::input
+
+pub proc create() {
+    return {
+        robot = {
+            position = [0.0, 0.0, 0.0],
+            rotation = 0.0
+        }
+    }
+}
+
+var ROBOT_TURN_SPEED = 1.0
+var ROBOT_MOVEMENT_SPEED = 1.5
+
+proc update_robot(robot) {
+    case input::key(input::KEY_ARROW_LEFT) -> {
+        robot.rotation = robot.rotation
+            + ROBOT_TURN_SPEED * obem::delta_time()
+    }
+    case input::key(input::KEY_ARROW_RIGHT) -> {
+        robot.rotation = robot.rotation
+            - ROBOT_TURN_SPEED * obem::delta_time()
+    }
+    var velocity = [math::cos(robot.rotation), 0.0, math::sin(robot.rotation)]
+        |> lav::scale(ROBOT_MOVEMENT_SPEED)
+        |> lav::scale(obem::delta_time())
+    robot.position = robot.position
+        |> lav::add(velocity)
+}
+
+pub proc update(gamestate) {
+    gamestate.robot |> update_robot()
+}
