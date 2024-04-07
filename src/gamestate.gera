@@ -4,9 +4,9 @@ mod vacuumulate::gamestate
 use vacuumulate::res
 use vacuumulate::renderer::(CAMERA_POSITION, CAMERA_LOOK_AT, CAMERA_UP)
 
-use std::(math, arr, iter, time, opt)
+use std::(math, arr, iter, time, opt, str)
 use std::rng::Random
-use obem::(lav, input, afx)
+use obem::(lav, input, afx, data)
 
 pub proc create() {
     var gamestate = {
@@ -361,6 +361,24 @@ proc update_explosion(gamestate) {
     } else {}
 }
 
+pub var DATA_HIGHSCORE = "highscore"
+
+proc update_highscore(gamestate) {
+    case !data::has(DATA_HIGHSCORE) -> {
+        gamestate.score |> as_str() |> data::store(DATA_HIGHSCORE)
+    }
+    case data::get(DATA_HIGHSCORE) |> str::parse_int() {
+        #none -> {
+            gamestate.score |> as_str() |> data::store(DATA_HIGHSCORE)
+        }
+        #some highscore -> {
+            case highscore < gamestate.score -> {
+                gamestate.score |> as_str() |> data::store(DATA_HIGHSCORE)
+            }
+        }
+    }
+}
+
 proc configure_listener() {
     afx::Listener::position(CAMERA_POSITION)
     afx::Listener::orientation(CAMERA_LOOK_AT, CAMERA_UP)
@@ -373,5 +391,6 @@ pub proc update(gamestate) {
     gamestate |> update_obstacles()
     gamestate |> update_smoke()
     gamestate |> update_explosion()
+    gamestate |> update_highscore()
     configure_listener()
 }

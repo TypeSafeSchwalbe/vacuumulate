@@ -2,10 +2,11 @@
 mod vacuumulate::renderer
 
 use vacuumulate::res
+use vacuumulate::gamestate::DATA_HIGHSCORE
 
 use std::(arr, iter, str, opt)
 use obem::gfx::(Shader, Surface, Mesh)
-use obem::(lam, lav)
+use obem::(lam, lav, data)
 
 pub var CAMERA_POSITION = [0.0, 10.0, 10.0]
 pub var CAMERA_LOOK_AT = [0.0, 0.0, -3.0]
@@ -102,7 +103,7 @@ proc render_sprite(renderer, position, size, texture, src_pos, src_size) {
 }
 
 var FONT_CHARS
-    = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!.,:; "
+    = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!.,:; ()"
 
 proc render_text(renderer, position, size, text) {
     var char_width = size * 7.0 / 9.0
@@ -190,12 +191,11 @@ proc render_explosion(renderer, explosion) {
 }
 
 proc render_score(renderer, score) {
+    var score_text = "hi _   _"
+        |> str::fmt([data::get(DATA_HIGHSCORE), score |> as_str()])
     var screen_height = Surface::main() .> height() |> as_flt()
     renderer |> render_text(
-        [50.0, 50.0],
-        screen_height / 30.0, 
-        score |> as_str()
-    )
+        [50.0, 50.0], screen_height / 30.0, score_text)
 }
 
 proc render_menu(renderer, menu) {
