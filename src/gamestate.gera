@@ -10,6 +10,7 @@ use obem::(lav, input, afx)
 
 pub proc create() {
     var gamestate = {
+        menu = menu_hidden(),
         music_audio_source = afx::Source::new([0.0, 0.0, 0.0])
             .> loop(true)
             .> gain(10.0)
@@ -28,9 +29,60 @@ pub proc create() {
         explosion = #none unit,
         score = 0
     }
-    gamestate.robot.update = robot_movement(gamestate.robot)
+    gamestate.menu = menu_start(gamestate)
     gamestate |> add_debris(20)
     return gamestate
+}
+
+proc reset_gamestate(gamestate) {
+    gamestate.robot = {
+        position = [0.0, 0.0, 0.0],
+        rotation = 0.0,
+        update = || {},
+        audio_source = afx::Source::new([0.0, 0.0, 0.0])
+    }
+    gamestate.robot.update = robot_movement(gamestate.robot)
+    gamestate.update_collectables = true
+    gamestate.debris = []
+    gamestate.obstacles = []
+    gamestate.smoke = []
+    gamestate.explosion = #none unit
+    gamestate.score = 0
+    gamestate |> add_debris(20)
+}
+
+proc menu_start(gamestate) {
+    return {
+        title = "Vacuumulate",
+        prompt = "Use the arrow keys to rotate the robot. Click anywhere to begin.",
+        update = || {
+            case input::mouse_button(input::MOUSE_LEFT) -> {
+                gamestate.robot.update = robot_movement(gamestate.robot)
+                gamestate.menu = menu_hidden()
+            }
+        }
+    }
+}
+
+proc menu_hidden() {
+    return {
+        title = "",
+        prompt = "",
+        update = || {}
+    }
+}
+
+proc menu_game_over(gamestate) {
+    return {
+        title = "Game Over!",
+        prompt = "Click anywhere to try again.",
+        update = || {
+            case input::mouse_button(input::MOUSE_LEFT) -> {
+                gamestate |> reset_gamestate()
+                gamestate.menu = menu_hidden()
+            }
+        }
+    }
 }
 
 proc in_room(pos, radius) {
@@ -133,7 +185,14 @@ proc robot_smoke(gamestate) {
 proc robot_explode(gamestate) {
     var robot = gamestate.robot
     gamestate.explosion = #some create_explosion(gamestate, robot.position)
-    return || {}
+    var start_time = time::now_utc()
+    var duration = 2 |> time::seconds()
+    return || {
+        case time::now_utc() > start_time + duration -> {
+            robot.update = || {}
+            gamestate.menu = menu_game_over(gamestate)
+        }
+    }
 }
 
 proc create_debris(gamestate) {
@@ -308,6 +367,7 @@ proc configure_listener() {
 }
 
 pub proc update(gamestate) {
+    gamestate.menu.update()
     gamestate.robot.update()
     gamestate |> update_debris()
     gamestate |> update_obstacles()

@@ -102,11 +102,12 @@ proc render_sprite(renderer, position, size, texture, src_pos, src_size) {
 }
 
 var FONT_CHARS
-    = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!.,:;"
+    = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!.,:; "
 
 proc render_text(renderer, position, size, text) {
-    var char_width = size * 5.0 / 7.0
-    var char_offset = size * 6.0 / 7.0
+    var char_width = size * 7.0 / 9.0
+    var char_padding = size * 1.0 / 9.0
+    var char_offset = char_width + char_padding
     0..length(text) |> iter::for_each(|i| {
         var c = text |> str::at(i)
         var c_font_idx = FONT_CHARS
@@ -115,12 +116,19 @@ proc render_text(renderer, position, size, text) {
         var drawn_pos = position
             |> lav::add([as_flt(i) * char_offset, 0.0])
         var drawn_size = [char_width, size]
-        var src_pos = [as_flt(c_font_idx) * 6.0, 0.0]
-        var src_size = [5.0, 7.0]
+        var src_pos = [as_flt(c_font_idx) * 8.0, 0.0]
+        var src_size = [7.0, 9.0]
         renderer |> render_sprite(
             drawn_pos, drawn_size, res::FONT_TEXTURE .> get(), src_pos, src_size
         )
     })
+}
+
+proc rendered_text_width(size, text) {
+    var char_width = size * 7.0 / 9.0
+    var char_padding = size * 1.0 / 9.0
+    return as_flt(length(text)) * char_width
+        + as_flt(length(text) - 1) * char_padding
 }
 
 proc render_room(renderer) {
@@ -181,13 +189,34 @@ proc render_explosion(renderer, explosion) {
     )
 }
 
-proc render_score(renderer, gamestate) {
+proc render_score(renderer, score) {
     var screen_height = Surface::main() .> height() |> as_flt()
     renderer |> render_text(
         [50.0, 50.0],
         screen_height / 30.0, 
-        gamestate.score |> as_str()
+        score |> as_str()
     )
+}
+
+proc render_menu(renderer, menu) {
+    var screen_width = Surface::main() .> width() |> as_flt()
+    var screen_height = Surface::main() .> height() |> as_flt()
+    var title_size = screen_height / 10.0
+    var prompt_size = screen_height / 40.0
+    var padding_size = screen_height / 10.0
+    var menu_size = title_size + padding_size + prompt_size
+    var title_width = rendered_text_width(title_size, menu.title)
+    var title_pos = [
+        (screen_width - title_width) / 2.0, 
+        (screen_height - menu_size) / 2.0
+    ]
+    renderer |> render_text(title_pos, title_size, menu.title)
+    var prompt_width = rendered_text_width(prompt_size, menu.prompt)
+    var prompt_pos = [
+        (screen_width - prompt_width) / 2.0,
+        (screen_height - menu_size) / 2.0 + title_size + padding_size
+    ]
+    renderer |> render_text(prompt_pos, prompt_size, menu.prompt)
 }
 
 pub proc render(renderer, gamestate) {
@@ -209,5 +238,6 @@ pub proc render(renderer, gamestate) {
     case gamestate.explosion {
         #some explosion -> renderer |> render_explosion(explosion)
     } else {}
-    renderer |> render_score(gamestate)
+    renderer |> render_score(gamestate.score)
+    renderer |> render_menu(gamestate.menu)
 }
