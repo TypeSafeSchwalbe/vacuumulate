@@ -8,7 +8,7 @@ The game is about a small vacuum robot that needs to clean up a room.
 ![Screenshot 1](screenshot1.png)
 ![Screenshot 2](screenshot2.png)
 
-The project may be compiled from source using [the Gera package manager](https://github.com/geralang/gerap), but you can also simply play the game over at https://vacumulate.netlify.app/.
+The project may be compiled from source using [the Gera package manager](https://github.com/geralang/gerap), but you can also simply play the game over at https://vacuumulate.netlify.app/.
 
 ### Credits
 
