@@ -107,7 +107,7 @@ var FONT_CHARS
 
 proc render_text(renderer, position, size, text) {
     var char_width = size * 7.0 / 9.0
-    var char_padding = size * 1.0 / 9.0
+    var char_padding = size * 0.0 / 9.0
     var char_offset = char_width + char_padding
     0..length(text) |> iter::for_each(|i| {
         var c = text |> str::at(i)
@@ -127,7 +127,7 @@ proc render_text(renderer, position, size, text) {
 
 proc rendered_text_width(size, text) {
     var char_width = size * 7.0 / 9.0
-    var char_padding = size * 1.0 / 9.0
+    var char_padding = size * 0.0 / 9.0
     return as_flt(length(text)) * char_width
         + as_flt(length(text) - 1) * char_padding
 }

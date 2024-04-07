@@ -30,7 +30,7 @@ pub proc create() {
         score = 0
     }
     gamestate.menu = menu_start(gamestate)
-    gamestate |> add_debris(20)
+    gamestate |> add_debris(5)
     return gamestate
 }
 
@@ -48,7 +48,7 @@ proc reset_gamestate(gamestate) {
     gamestate.smoke = []
     gamestate.explosion = #none unit
     gamestate.score = 0
-    gamestate |> add_debris(20)
+    gamestate |> add_debris(5)
 }
 
 proc menu_start(gamestate) {
@@ -74,7 +74,7 @@ proc menu_hidden() {
 
 proc menu_game_over(gamestate) {
     return {
-        title = "Game Over!",
+        title = "That was too big.",
         prompt = "Click anywhere to try again.",
         update = || {
             case input::mouse_button(input::MOUSE_LEFT) -> {
@@ -251,7 +251,7 @@ proc update_debris(gamestate) {
         |> arr::iter()
         |> iter::filter(|debris| !picked_up(debris.position, gamestate.robot))
         |> arr::collect()
-    case length(gamestate.debris) < 20 -> {
+    case length(gamestate.debris) < 5 -> {
         gamestate |> add_debris(5)
     }
 }
@@ -266,13 +266,17 @@ proc create_obstacle(gamestate) {
         { model = res::APPLE_MODEL, texture = res::APPLE_TEXTURE },
         { model = res::PENCIL_MODEL, texture = res::PENCIL_TEXTURE }
     ]
-    var variant_idx = as_int(gamestate.rng .> flt_in(0.0, 9999.0))
-        % length(variants)
+    var last_variant_idx = length(gamestate.obstacles) > 0 |> std::if_else_lazy(
+        || gamestate.obstacles[length(gamestate.obstacles) - 1].variant_idx,
+        || 0
+    )
+    var variant_idx = (last_variant_idx + 1) % length(variants)
     return {
         position = position,
         rotation = gamestate.rng .> flt_in(0.0, math::TAU),
         model = variants[variant_idx].model .> get(),
         texture = variants[variant_idx].texture .> get(),
+        variant_idx = variant_idx,
         audio_source = afx::Source::new(position)
             .> pitch(gamestate.rng .> flt_in(0.8, 1.2))
             .> gain(0.8)
@@ -288,9 +292,11 @@ proc add_obstacles(gamestate, count) {
         |> arr::concat(added)
 }
 
+var OBSTACLE_FREQUENCY = 3
+
 proc update_obstacles(gamestate) {
     case !gamestate.update_collectables -> return unit
-    case gamestate.score / 10 > length(gamestate.obstacles) -> {
+    case gamestate.score / OBSTACLE_FREQUENCY > length(gamestate.obstacles) -> {
         gamestate |> add_obstacles(1)
     }
     var collected = gamestate.obstacles
