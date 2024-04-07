@@ -30,14 +30,33 @@ pub var PENCIL_MODEL = "res/pencil.obj"
 pub var PENCIL_TEXTURE = "res/pencil.png"
     |> Image::new()
 
+pub var SPAWN_SOUND = "res/spawn.mp3"
+    |> Sound::new()
+
+pub var COLLECT_SOUND = "res/collect.mp3"
+    |> Sound::new()
+
+pub var VIBRATE_SOUND = "res/vibrate.mp3"
+    |> Sound::new()
+
 pub var SMOKE_MODEL = "res/smoke.obj"
     |> ObjModel::new([ObjModel::POSITION, ObjModel::UV])
 pub var SMOKE_TEXTURE = "res/smoke.png"
     |> Image::new()
+pub var SMOKE_SOUND = "res/smoke.mp3"
+    |> Sound::new()
 
 pub var EXPLOSION_MODEL = "res/explosion.obj"
     |> ObjModel::new([ObjModel::POSITION, ObjModel::UV])
 pub var EXPLOSION_TEXTURE = "res/explosion.png"
+    |> Image::new()
+pub var EXPLOSION_SOUND = "res/explosion.mp3"
+    |> Sound::new()
+
+pub var BACKGROUND_TRACK = "res/backbay_lounge.mp3"
+    |> Sound::new()
+
+pub var FONT_TEXTURE = "res/font.png"
     |> Image::new()
 
 pub proc on_load(callback) {
@@ -58,10 +77,22 @@ pub proc on_load(callback) {
         PENCIL_MODEL .> load(),
         PENCIL_TEXTURE .> load(),
 
+        SPAWN_SOUND .> load(),
+
+        COLLECT_SOUND .> load(),
+
+        VIBRATE_SOUND .> load(),
+
         SMOKE_MODEL .> load(),
         SMOKE_TEXTURE .> load(),
+        SMOKE_SOUND .> load(),
 
         EXPLOSION_MODEL .> load(),
-        EXPLOSION_TEXTURE .> load()
+        EXPLOSION_TEXTURE .> load(),
+        EXPLOSION_SOUND .> load(),
+
+        BACKGROUND_TRACK .> load(),
+
+        FONT_TEXTURE .> load()
     ], callback)
 }

@@ -2,19 +2,24 @@
 mod vacuumulate::gamestate
 
 use vacuumulate::res
+use vacuumulate::renderer::(CAMERA_POSITION, CAMERA_LOOK_AT, CAMERA_UP)
 
 use std::(math, arr, iter, time, opt)
 use std::rng::Random
-use obem::lav
-use obem::input
+use obem::(lav, input, afx)
 
 pub proc create() {
     var gamestate = {
+        music_audio_source = afx::Source::new([0.0, 0.0, 0.0])
+            .> loop(true)
+            .> gain(10.0)
+            .> play(res::BACKGROUND_TRACK .> get()),
         rng = Random::new(time::now_utc()),
         robot = {
             position = [0.0, 0.0, 0.0],
             rotation = 0.0,
-            update = || {}
+            update = || {},
+            audio_source = afx::Source::new([0.0, 0.0, 0.0])
         },
         update_collectables = true,
         debris = [],
@@ -62,6 +67,7 @@ proc robot_movement(robot) {
             |> lav::scale(obem::delta_time())
         robot.position = robot.position
             |> lav::add(velocity)
+        robot.audio_source .> position(robot.position)
         case !in_room(robot.position, 0.6) -> {
             robot.update = robot_reversal(robot)
         }
@@ -89,6 +95,9 @@ proc robot_vibrate(gamestate) {
     var start_position = robot.position
     var start_time = time::now_utc()
     var duration = 5 |> time::seconds()
+    robot.audio_source
+        .> gain(10.0)
+        .> play(res::VIBRATE_SOUND .> get())
     return || {
         robot.position = start_position
             |> lav::add(lav::scale([
@@ -96,6 +105,8 @@ proc robot_vibrate(gamestate) {
                 0.0,
                 gamestate.rng .> flt_in(-1.0, 1.0)
             ], obem::delta_time()))
+        robot.audio_source 
+            .> position(robot.position)
         case time::now_utc() > start_time + duration -> {
             robot.update = robot_smoke(gamestate)
         }
@@ -126,6 +137,11 @@ proc robot_explode(gamestate) {
 }
 
 proc create_debris(gamestate) {
+    var position = [
+        gamestate.rng .> flt_in(-9.0, 9.0),
+        0.01, 
+        gamestate.rng .> flt_in(-4.0, 4.0)
+    ]
     var textures = [
         res::DIRT_TEXTURE,
         res::DUST_TEXTURE
@@ -133,13 +149,13 @@ proc create_debris(gamestate) {
     var texture_idx = as_int(gamestate.rng .> flt_in(0.0, 9999.0))
         % length(textures)
     return {
-        position = [
-            gamestate.rng .> flt_in(-9.0, 9.0),
-            0.01, 
-            gamestate.rng .> flt_in(-4.0, 4.0)
-        ],
+        position = position,
         rotation = gamestate.rng .> flt_in(0.0, math::TAU),
-        texture = textures[texture_idx] .> get()
+        texture = textures[texture_idx] .> get(),
+        audio_source = afx::Source::new(position)
+            .> pitch(gamestate.rng .> flt_in(0.8, 1.2))
+            .> gain(0.5)
+            .> play(res::SPAWN_SOUND .> get())
     }
 }
 
@@ -160,12 +176,18 @@ proc picked_up(pos, robot) {
 
 proc update_debris(gamestate) {
     case !gamestate.update_collectables -> return unit
-    var added_score = gamestate.debris
+    var collected = gamestate.debris
         |> arr::iter()
         |> iter::filter(|debris| picked_up(debris.position, gamestate.robot))
-        |> iter::count()
+        |> arr::collect()
     gamestate.score = gamestate.score
-        + added_score
+        + length(collected)
+    collected
+        |> arr::iter()
+        |> iter::for_each(|debris| debris.audio_source
+            .> gain(20.0)
+            .> play(res::COLLECT_SOUND .> get())
+        )
     gamestate.debris = gamestate.debris
         |> arr::iter()
         |> iter::filter(|debris| !picked_up(debris.position, gamestate.robot))
@@ -176,6 +198,11 @@ proc update_debris(gamestate) {
 }
 
 proc create_obstacle(gamestate) {
+    var position = [
+        gamestate.rng .> flt_in(-9.0, 9.0),
+        0.01, 
+        gamestate.rng .> flt_in(-4.0, 4.0)
+    ]
     var variants = [
         { model = res::APPLE_MODEL, texture = res::APPLE_TEXTURE },
         { model = res::PENCIL_MODEL, texture = res::PENCIL_TEXTURE }
@@ -183,14 +210,14 @@ proc create_obstacle(gamestate) {
     var variant_idx = as_int(gamestate.rng .> flt_in(0.0, 9999.0))
         % length(variants)
     return {
-        position = [
-            gamestate.rng .> flt_in(-9.0, 9.0),
-            0.01, 
-            gamestate.rng .> flt_in(-4.0, 4.0)
-        ],
+        position = position,
         rotation = gamestate.rng .> flt_in(0.0, math::TAU),
         model = variants[variant_idx].model .> get(),
-        texture = variants[variant_idx].texture .> get()
+        texture = variants[variant_idx].texture .> get(),
+        audio_source = afx::Source::new(position)
+            .> pitch(gamestate.rng .> flt_in(0.8, 1.2))
+            .> gain(0.8)
+            .> play(res::SPAWN_SOUND .> get())
     }
 }
 
@@ -207,12 +234,17 @@ proc update_obstacles(gamestate) {
     case gamestate.score / 10 > length(gamestate.obstacles) -> {
         gamestate |> add_obstacles(1)
     }
-    var collided = gamestate.obstacles
+    var collected = gamestate.obstacles
         |> arr::iter()
         |> iter::filter(|o| picked_up(o.position, gamestate.robot))
-        |> iter::next()
-        |> opt::is_some()
-    case collided -> {
+        |> arr::collect()
+    collected
+        |> arr::iter()
+        |> iter::for_each(|o| o.audio_source
+            .> gain(20.0)
+            .> play(res::COLLECT_SOUND .> get())
+        )
+    case length(collected) > 0 -> {
         gamestate.robot.update = robot_vibrate(gamestate)
         gamestate.update_collectables = false
     }
@@ -223,13 +255,18 @@ proc update_obstacles(gamestate) {
 }
 
 proc create_smoke(gamestate, position) {
+    var final_position = position
+        |> lav::add([
+            gamestate.rng .> flt_in(-0.5, 0.5),
+            0.0,
+            gamestate.rng .> flt_in(-0.5, 0.5)
+        ])
     return {
-        position = position
-            |> lav::add([
-                gamestate.rng .> flt_in(-0.5, 0.5),
-                0.0,
-                gamestate.rng .> flt_in(-0.5, 0.5)
-            ]),
+        position = final_position,
+        audio_source = afx::Source::new(final_position)
+            .> pitch(gamestate.rng .> flt_in(0.8, 1.2))
+            .> gain(4.0)
+            .> play(res::SMOKE_SOUND .> get())
     }
 }
 
@@ -245,7 +282,10 @@ proc update_smoke(gamestate) {
 proc create_explosion(gamestate, position) {
     return {
         position = position,
-        size = 1.0
+        size = 1.0,
+        audio_source = afx::Source::new(position)
+            .> gain(10.0)
+            .> play(res::EXPLOSION_SOUND .> get())
     }
 }
 
@@ -262,10 +302,16 @@ proc update_explosion(gamestate) {
     } else {}
 }
 
+proc configure_listener() {
+    afx::Listener::position(CAMERA_POSITION)
+    afx::Listener::orientation(CAMERA_LOOK_AT, CAMERA_UP)
+}
+
 pub proc update(gamestate) {
     gamestate.robot.update()
     gamestate |> update_debris()
     gamestate |> update_obstacles()
     gamestate |> update_smoke()
     gamestate |> update_explosion()
+    configure_listener()
 }
