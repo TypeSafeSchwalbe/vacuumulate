@@ -272,6 +272,7 @@ proc create_obstacle(gamestate) {
     )
     var variant_idx = (last_variant_idx + 1) % length(variants)
     return {
+        spawn_time = time::now_utc(),
         position = position,
         rotation = gamestate.rng .> flt_in(0.0, math::TAU),
         model = variants[variant_idx].model .> get(),
@@ -292,6 +293,13 @@ proc add_obstacles(gamestate, count) {
         |> arr::concat(added)
 }
 
+var OBSTACLE_COOLDOWN = 2 |> time::seconds()
+
+proc obstacle_picked_up(o, robot) {
+    return picked_up(o.position, robot)
+        && time::now_utc() > o.spawn_time + OBSTACLE_COOLDOWN 
+}
+
 var OBSTACLE_FREQUENCY = 3
 
 proc update_obstacles(gamestate) {
@@ -301,7 +309,7 @@ proc update_obstacles(gamestate) {
     }
     var collected = gamestate.obstacles
         |> arr::iter()
-        |> iter::filter(|o| picked_up(o.position, gamestate.robot))
+        |> iter::filter(|o| obstacle_picked_up(o, gamestate.robot))
         |> arr::collect()
     collected
         |> arr::iter()
@@ -315,7 +323,7 @@ proc update_obstacles(gamestate) {
     }
     gamestate.obstacles = gamestate.obstacles
         |> arr::iter()
-        |> iter::filter(|o| !picked_up(o.position, gamestate.robot))
+        |> iter::filter(|o| !obstacle_picked_up(o, gamestate.robot))
         |> arr::collect()
 }
 
