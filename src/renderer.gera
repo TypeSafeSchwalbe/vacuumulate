@@ -8,9 +8,9 @@ use std::(arr, iter, str, opt)
 use obem::gfx::(Shader, Surface, Mesh)
 use obem::(lam, lav, data)
 
-pub var CAMERA_POSITION = [0.0, 10.0, 10.0]
-pub var CAMERA_LOOK_AT = [0.0, 0.0, -3.0]
-pub var CAMERA_UP = [0.0, 1.0, 0.0]
+pub val CAMERA_POSITION = [0.0, 10.0, 10.0]
+pub val CAMERA_LOOK_AT = [0.0, 0.0, -3.0]
+pub val CAMERA_UP = [0.0, 1.0, 0.0]
 
 pub proc create() {
     return {
@@ -44,10 +44,10 @@ pub proc create() {
 }
 
 proc set_object_camera(renderer) {
-    var fov = std::math::PI * 0.3
-    var aspect_ratio = (Surface::main() .> width() |> as_flt())
+    val fov = std::math::PI * 0.3
+    val aspect_ratio = (Surface::main() .> width() |> as_flt())
         / (Surface::main() .> height() |> as_flt())
-    var camera_matrix = lam::perspective(fov, aspect_ratio, 0.01, 1000.0)
+    val camera_matrix = lam::perspective(fov, aspect_ratio, 0.01, 1000.0)
        |> lam::mul(lam::look_at(CAMERA_POSITION, CAMERA_LOOK_AT, CAMERA_UP))
     renderer.object_camera = camera_matrix
 }
@@ -73,18 +73,18 @@ proc as_ndc(pixel_pos) {
 proc render_sprite(renderer, position, size, texture, src_pos, src_size) {
     // this could be optimized by using a singular mesh with 
     // a model matrix and an orthographic projection matrix
-    var top_left = position |> as_ndc()
-    var bottom_right = position |> lav::add(size) |> as_ndc()
-    var uv_bottom_left = src_pos
+    val top_left = position |> as_ndc()
+    val bottom_right = position |> lav::add(size) |> as_ndc()
+    val uv_bottom_left = src_pos
         |> lav::div([
             texture .> width() |> as_flt(), texture .> height() |> as_flt()
         ])
-    var uv_top_right = src_pos
+    val uv_top_right = src_pos
         |> lav::add(src_size)
         |> lav::div([
             texture .> width() |> as_flt(), texture .> height() |> as_flt()
         ])
-    var mesh = Mesh::new(
+    val mesh = Mesh::new(
         [
             top_left[0],     top_left[1],     0.0, uv_bottom_left[0], uv_top_right[1], 
             bottom_right[0], top_left[1],     0.0, uv_top_right[0],   uv_top_right[1],
@@ -102,23 +102,23 @@ proc render_sprite(renderer, position, size, texture, src_pos, src_size) {
         .> draw_mesh(mesh, [3, 2], renderer.shader, false)
 }
 
-var FONT_CHARS
+val FONT_CHARS
     = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!.,:; ()"
 
 proc render_text(renderer, position, size, text) {
-    var char_width = size * 7.0 / 9.0
-    var char_padding = size * 0.0 / 9.0
-    var char_offset = char_width + char_padding
+    val char_width = size * 7.0 / 9.0
+    val char_padding = size * 0.0 / 9.0
+    val char_offset = char_width + char_padding
     0..length(text) |> iter::for_each(|i| {
-        var c = text |> str::at(i)
-        var c_font_idx = FONT_CHARS
+        val c = text |> str::at(i)
+        val c_font_idx = FONT_CHARS
             |> str::find(c) |> iter::next()
             |> opt::unwrap_or(length(FONT_CHARS))
-        var drawn_pos = position
+        val drawn_pos = position
             |> lav::add([as_flt(i) * char_offset, 0.0])
-        var drawn_size = [char_width, size]
-        var src_pos = [as_flt(c_font_idx) * 8.0, 0.0]
-        var src_size = [7.0, 9.0]
+        val drawn_size = [char_width, size]
+        val src_pos = [as_flt(c_font_idx) * 8.0, 0.0]
+        val src_size = [7.0, 9.0]
         renderer |> render_sprite(
             drawn_pos, drawn_size, res::FONT_TEXTURE .> get(), src_pos, src_size
         )
@@ -126,8 +126,8 @@ proc render_text(renderer, position, size, text) {
 }
 
 proc rendered_text_width(size, text) {
-    var char_width = size * 7.0 / 9.0
-    var char_padding = size * 0.0 / 9.0
+    val char_width = size * 7.0 / 9.0
+    val char_padding = size * 0.0 / 9.0
     return as_flt(length(text)) * char_width
         + as_flt(length(text) - 1) * char_padding
 }
@@ -143,7 +143,7 @@ proc render_room(renderer) {
 }
 
 proc render_robot(renderer, robot) {
-    var model_matrix = lam::translation(robot.position)
+    val model_matrix = lam::translation(robot.position)
         |> lam::rotate_y(-robot.rotation)
         |> lam::rotate_y(std::math::PI)
     renderer |> render_object(
@@ -153,7 +153,7 @@ proc render_robot(renderer, robot) {
 }
 
 proc render_debris(renderer, debris) {
-    var model_matrix = lam::translation(debris.position)
+    val model_matrix = lam::translation(debris.position)
         |> lam::rotate_y(debris.rotation)
     renderer |> render_object(
         model_matrix, debris.texture, res::DEBRIS_MODEL .> get(),
@@ -162,7 +162,7 @@ proc render_debris(renderer, debris) {
 }
 
 proc render_obstacle(renderer, obstacle) {
-    var model_matrix = lam::translation(obstacle.position)
+    val model_matrix = lam::translation(obstacle.position)
         |> lam::rotate_y(obstacle.rotation)
     renderer |> render_object(
         model_matrix, obstacle.texture, obstacle.model,
@@ -171,8 +171,8 @@ proc render_obstacle(renderer, obstacle) {
 }
 
 proc render_smoke(renderer, smoke) {
-    var scale_factor = 1.0 + smoke.position[1]
-    var model_matrix = lam::translation(smoke.position)
+    val scale_factor = 1.0 + smoke.position[1]
+    val model_matrix = lam::translation(smoke.position)
             |> lam::scale([scale_factor, scale_factor, scale_factor, 1.0])
     renderer |> render_object(
         model_matrix, res::SMOKE_TEXTURE .> get(), res::SMOKE_MODEL .> get(),
@@ -181,7 +181,7 @@ proc render_smoke(renderer, smoke) {
 }
 
 proc render_explosion(renderer, explosion) {
-    var model_matrix = lam::translation(explosion.position)
+    val model_matrix = lam::translation(explosion.position)
             |> lam::scale([explosion.size, explosion.size, explosion.size, 1.0])
     renderer |> render_object(
         model_matrix,
@@ -191,28 +191,28 @@ proc render_explosion(renderer, explosion) {
 }
 
 proc render_score(renderer, score) {
-    var score_text = "hi _   _"
+    val score_text = "hi _   _"
         |> str::fmt([data::get(DATA_HIGHSCORE), score |> as_str()])
-    var screen_height = Surface::main() .> height() |> as_flt()
+    val screen_height = Surface::main() .> height() |> as_flt()
     renderer |> render_text(
         [50.0, 50.0], screen_height / 30.0, score_text)
 }
 
 proc render_menu(renderer, menu) {
-    var screen_width = Surface::main() .> width() |> as_flt()
-    var screen_height = Surface::main() .> height() |> as_flt()
-    var title_size = screen_height / 10.0
-    var prompt_size = screen_height / 40.0
-    var padding_size = screen_height / 10.0
-    var menu_size = title_size + padding_size + prompt_size
-    var title_width = rendered_text_width(title_size, menu.title)
-    var title_pos = [
+    val screen_width = Surface::main() .> width() |> as_flt()
+    val screen_height = Surface::main() .> height() |> as_flt()
+    val title_size = screen_height / 10.0
+    val prompt_size = screen_height / 40.0
+    val padding_size = screen_height / 10.0
+    val menu_size = title_size + padding_size + prompt_size
+    val title_width = rendered_text_width(title_size, menu.title)
+    val title_pos = [
         (screen_width - title_width) / 2.0, 
         (screen_height - menu_size) / 2.0
     ]
     renderer |> render_text(title_pos, title_size, menu.title)
-    var prompt_width = rendered_text_width(prompt_size, menu.prompt)
-    var prompt_pos = [
+    val prompt_width = rendered_text_width(prompt_size, menu.prompt)
+    val prompt_pos = [
         (screen_width - prompt_width) / 2.0,
         (screen_height - menu_size) / 2.0 + title_size + padding_size
     ]
@@ -220,7 +220,7 @@ proc render_menu(renderer, menu) {
 }
 
 pub proc render(renderer, gamestate) {
-    var background = [95.0, 87.0, 79.0, 255.0]
+    val background = [95.0, 87.0, 79.0, 255.0]
         |> lav::scale(1.0 / 255.0)
     Surface::main() .> clear_color(background)
     renderer |> set_object_camera()

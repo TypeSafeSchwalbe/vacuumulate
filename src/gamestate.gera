@@ -9,7 +9,7 @@ use std::rng::Random
 use obem::(lav, input, afx, data)
 
 pub proc create() {
-    var gamestate = {
+    val gamestate = {
         menu = menu_hidden(),
         music_audio_source = afx::Source::new([0.0, 0.0, 0.0])
             .> loop(true)
@@ -92,8 +92,8 @@ proc in_room(pos, radius) {
         && pos[2] + radius < 5.0
 }
 
-var ROBOT_TURN_SPEED = 1.0
-var ROBOT_MOVEMENT_SPEED = 1.5
+val ROBOT_TURN_SPEED = 1.0
+val ROBOT_MOVEMENT_SPEED = 1.5
 
 proc robot_direction(robot) {
     return [
@@ -113,7 +113,7 @@ proc robot_movement(robot) {
             robot.rotation = robot.rotation
                 - ROBOT_TURN_SPEED * obem::delta_time()
         }
-        var velocity = robot
+        val velocity = robot
             |> robot_direction()
             |> lav::scale(ROBOT_MOVEMENT_SPEED)
             |> lav::scale(obem::delta_time())
@@ -127,11 +127,11 @@ proc robot_movement(robot) {
 }
 
 proc robot_reversal(robot) {
-    var start_time = time::now_utc()
-    var duration = 2 |> time::seconds()
-    var start_rotation = robot.rotation
+    val start_time = time::now_utc()
+    val duration = 2 |> time::seconds()
+    val start_rotation = robot.rotation
     return || {
-        var t = as_flt(time::now_utc() - start_time) / as_flt(duration)
+        val t = as_flt(time::now_utc() - start_time) / as_flt(duration)
         robot.rotation = start_rotation + t * math::PI
         case t >= 1.0 -> {
             robot.update = robot_movement(robot)
@@ -143,10 +143,10 @@ proc robot_reversal(robot) {
 }
 
 proc robot_vibrate(gamestate) {
-    var robot = gamestate.robot
-    var start_position = robot.position
-    var start_time = time::now_utc()
-    var duration = 5 |> time::seconds()
+    val robot = gamestate.robot
+    val start_position = robot.position
+    val start_time = time::now_utc()
+    val duration = 5 |> time::seconds()
     robot.audio_source
         .> gain(10.0)
         .> play(res::VIBRATE_SOUND .> get())
@@ -166,11 +166,11 @@ proc robot_vibrate(gamestate) {
 }
 
 proc robot_smoke(gamestate) {
-    var robot = gamestate.robot
-    var start_time = time::now_utc()
-    var duration = 5 |> time::seconds()
+    val robot = gamestate.robot
+    val start_time = time::now_utc()
+    val duration = 5 |> time::seconds()
     return || {
-        var next_smoke_time = start_time
+        val next_smoke_time = start_time
             + (length(gamestate.smoke) |> time::seconds())
         case time::now_utc() > next_smoke_time -> {
             gamestate.smoke = gamestate.smoke
@@ -183,10 +183,10 @@ proc robot_smoke(gamestate) {
 }
 
 proc robot_explode(gamestate) {
-    var robot = gamestate.robot
+    val robot = gamestate.robot
     gamestate.explosion = #some create_explosion(gamestate, robot.position)
-    var start_time = time::now_utc()
-    var duration = 2 |> time::seconds()
+    val start_time = time::now_utc()
+    val duration = 2 |> time::seconds()
     return || {
         case time::now_utc() > start_time + duration -> {
             robot.update = || {}
@@ -196,16 +196,16 @@ proc robot_explode(gamestate) {
 }
 
 proc create_debris(gamestate) {
-    var position = [
+    val position = [
         gamestate.rng .> flt_in(-9.0, 9.0),
         0.01, 
         gamestate.rng .> flt_in(-4.0, 4.0)
     ]
-    var textures = [
+    val textures = [
         res::DIRT_TEXTURE,
         res::DUST_TEXTURE
     ]
-    var texture_idx = as_int(gamestate.rng .> flt_in(0.0, 9999.0))
+    val texture_idx = as_int(gamestate.rng .> flt_in(0.0, 9999.0))
         % length(textures)
     return {
         position = position,
@@ -219,7 +219,7 @@ proc create_debris(gamestate) {
 }
 
 proc add_debris(gamestate, count) {
-    var added = iter::repeat_over(|| create_debris(gamestate))
+    val added = iter::repeat_over(|| create_debris(gamestate))
         |> iter::take(count)
         |> arr::collect()
     gamestate.debris = gamestate.debris
@@ -227,7 +227,7 @@ proc add_debris(gamestate, count) {
 }
 
 proc picked_up(pos, robot) {
-    var distance = robot.position
+    val distance = robot.position
         |> lav::sub(pos)
         |> lav::len()
     return distance < 0.4
@@ -235,7 +235,7 @@ proc picked_up(pos, robot) {
 
 proc update_debris(gamestate) {
     case !gamestate.update_collectables -> return unit
-    var collected = gamestate.debris
+    val collected = gamestate.debris
         |> arr::iter()
         |> iter::filter(|debris| picked_up(debris.position, gamestate.robot))
         |> arr::collect()
@@ -257,27 +257,27 @@ proc update_debris(gamestate) {
 }
 
 proc create_obstacle(gamestate) {
-    var position = [
+    val position = [
         gamestate.rng .> flt_in(-9.0, 9.0),
         0.01, 
         gamestate.rng .> flt_in(-4.0, 4.0)
     ]
-    var variants = [
+    val valiants = [
         { model = res::APPLE_MODEL, texture = res::APPLE_TEXTURE },
         { model = res::PENCIL_MODEL, texture = res::PENCIL_TEXTURE }
     ]
-    var last_variant_idx = length(gamestate.obstacles) > 0 |> std::if_else_lazy(
-        || gamestate.obstacles[length(gamestate.obstacles) - 1].variant_idx,
+    val last_valiant_idx = length(gamestate.obstacles) > 0 |> std::if_else_lazy(
+        || gamestate.obstacles[length(gamestate.obstacles) - 1].valiant_idx,
         || 0
     )
-    var variant_idx = (last_variant_idx + 1) % length(variants)
+    val valiant_idx = (last_valiant_idx + 1) % length(valiants)
     return {
         spawn_time = time::now_utc(),
         position = position,
         rotation = gamestate.rng .> flt_in(0.0, math::TAU),
-        model = variants[variant_idx].model .> get(),
-        texture = variants[variant_idx].texture .> get(),
-        variant_idx = variant_idx,
+        model = valiants[valiant_idx].model .> get(),
+        texture = valiants[valiant_idx].texture .> get(),
+        valiant_idx = valiant_idx,
         audio_source = afx::Source::new(position)
             .> pitch(gamestate.rng .> flt_in(0.8, 1.2))
             .> gain(0.8)
@@ -286,28 +286,28 @@ proc create_obstacle(gamestate) {
 }
 
 proc add_obstacles(gamestate, count) {
-    var added = iter::repeat_over(|| create_obstacle(gamestate))
+    val added = iter::repeat_over(|| create_obstacle(gamestate))
         |> iter::take(count)
         |> arr::collect()
     gamestate.obstacles = gamestate.obstacles
         |> arr::concat(added)
 }
 
-var OBSTACLE_COOLDOWN = 2 |> time::seconds()
+val OBSTACLE_COOLDOWN = 2 |> time::seconds()
 
 proc obstacle_picked_up(o, robot) {
     return picked_up(o.position, robot)
         && time::now_utc() > o.spawn_time + OBSTACLE_COOLDOWN 
 }
 
-var OBSTACLE_FREQUENCY = 3
+val OBSTACLE_FREQUENCY = 3
 
 proc update_obstacles(gamestate) {
     case !gamestate.update_collectables -> return unit
     case gamestate.score / OBSTACLE_FREQUENCY > length(gamestate.obstacles) -> {
         gamestate |> add_obstacles(1)
     }
-    var collected = gamestate.obstacles
+    val collected = gamestate.obstacles
         |> arr::iter()
         |> iter::filter(|o| obstacle_picked_up(o, gamestate.robot))
         |> arr::collect()
@@ -328,7 +328,7 @@ proc update_obstacles(gamestate) {
 }
 
 proc create_smoke(gamestate, position) {
-    var final_position = position
+    val final_position = position
         |> lav::add([
             gamestate.rng .> flt_in(-0.5, 0.5),
             0.0,
@@ -343,7 +343,7 @@ proc create_smoke(gamestate, position) {
     }
 }
 
-var SMOKE_RISE_SPEED = 0.5
+val SMOKE_RISE_SPEED = 0.5
 
 proc update_smoke(gamestate) {
     gamestate.smoke |> arr::iter() |> iter::for_each(|smoke| {
@@ -362,7 +362,7 @@ proc create_explosion(gamestate, position) {
     }
 }
 
-var EXPLOSION_GROW_SPEED = 30.0
+val EXPLOSION_GROW_SPEED = 30.0
 
 proc update_explosion(gamestate) {
     case gamestate.explosion {
@@ -375,7 +375,7 @@ proc update_explosion(gamestate) {
     } else {}
 }
 
-pub var DATA_HIGHSCORE = "highscore"
+pub val DATA_HIGHSCORE = "highscore"
 
 proc update_highscore(gamestate) {
     case !data::has(DATA_HIGHSCORE) -> {

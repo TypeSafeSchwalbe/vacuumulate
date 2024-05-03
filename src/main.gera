@@ -11,8 +11,8 @@ proc main() {
 }
 
 proc init() {
-    var gamestate = gamestate::create()
-    var renderer = renderer::create()
+    val gamestate = gamestate::create()
+    val renderer = renderer::create()
     loop(gamestate, renderer) |> obem::on_frame()
 }
 

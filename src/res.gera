@@ -3,60 +3,60 @@ mod vacuumulate::res
 
 use obem::res::*
 
-pub var ROBOT_TEXTURE = "res/robot.png"
+pub val ROBOT_TEXTURE = "res/robot.png"
     |> Image::new()
-pub var ROBOT_MODEL = "res/robot.obj"
+pub val ROBOT_MODEL = "res/robot.obj"
     |> ObjModel::new([ObjModel::POSITION, ObjModel::UV])
 
-pub var ROOM_TEXTURE = "res/room.png"
+pub val ROOM_TEXTURE = "res/room.png"
     |> Image::new()
-pub var ROOM_MODEL = "res/room.obj"
+pub val ROOM_MODEL = "res/room.obj"
     |> ObjModel::new([ObjModel::POSITION, ObjModel::UV])
 
-pub var DEBRIS_MODEL = "res/debris.obj"
+pub val DEBRIS_MODEL = "res/debris.obj"
     |> ObjModel::new([ObjModel::POSITION, ObjModel::UV])
-pub var DUST_TEXTURE = "res/dust.png"
+pub val DUST_TEXTURE = "res/dust.png"
     |> Image::new()
-pub var DIRT_TEXTURE = "res/dirt.png"
+pub val DIRT_TEXTURE = "res/dirt.png"
     |> Image::new()
 
-pub var APPLE_MODEL = "res/apple.obj"
+pub val APPLE_MODEL = "res/apple.obj"
     |> ObjModel::new([ObjModel::POSITION, ObjModel::UV])
-pub var APPLE_TEXTURE = "res/apple.png"
+pub val APPLE_TEXTURE = "res/apple.png"
     |> Image::new()
 
-pub var PENCIL_MODEL = "res/pencil.obj"
+pub val PENCIL_MODEL = "res/pencil.obj"
     |> ObjModel::new([ObjModel::POSITION, ObjModel::UV])
-pub var PENCIL_TEXTURE = "res/pencil.png"
+pub val PENCIL_TEXTURE = "res/pencil.png"
     |> Image::new()
 
-pub var SPAWN_SOUND = "res/spawn.mp3"
+pub val SPAWN_SOUND = "res/spawn.mp3"
     |> Sound::new()
 
-pub var COLLECT_SOUND = "res/collect.mp3"
+pub val COLLECT_SOUND = "res/collect.mp3"
     |> Sound::new()
 
-pub var VIBRATE_SOUND = "res/vibrate.mp3"
+pub val VIBRATE_SOUND = "res/vibrate.mp3"
     |> Sound::new()
 
-pub var SMOKE_MODEL = "res/smoke.obj"
+pub val SMOKE_MODEL = "res/smoke.obj"
     |> ObjModel::new([ObjModel::POSITION, ObjModel::UV])
-pub var SMOKE_TEXTURE = "res/smoke.png"
+pub val SMOKE_TEXTURE = "res/smoke.png"
     |> Image::new()
-pub var SMOKE_SOUND = "res/smoke.mp3"
+pub val SMOKE_SOUND = "res/smoke.mp3"
     |> Sound::new()
 
-pub var EXPLOSION_MODEL = "res/explosion.obj"
+pub val EXPLOSION_MODEL = "res/explosion.obj"
     |> ObjModel::new([ObjModel::POSITION, ObjModel::UV])
-pub var EXPLOSION_TEXTURE = "res/explosion.png"
+pub val EXPLOSION_TEXTURE = "res/explosion.png"
     |> Image::new()
-pub var EXPLOSION_SOUND = "res/explosion.mp3"
+pub val EXPLOSION_SOUND = "res/explosion.mp3"
     |> Sound::new()
 
-pub var BACKGROUND_TRACK = "res/backbay_lounge.mp3"
+pub val BACKGROUND_TRACK = "res/backbay_lounge.mp3"
     |> Sound::new()
 
-pub var FONT_TEXTURE = "res/font.png"
+pub val FONT_TEXTURE = "res/font.png"
     |> Image::new()
 
 pub proc on_load(callback) {
