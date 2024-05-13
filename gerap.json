@@ -1,0 +1,11 @@
+{
+    "name": "vacuumulate",
+    "description": "A simple game about a vacuum robot.",
+    "authors": ["TypeSafeSchwalbe"],
+    "target": "js",
+    "dependencies": [
+        "https://github.com/geralang/std",
+        "https://github.com/typesafeschwalbe/obem"
+    ],
+    "main": "vacuumulate::main"
+}
