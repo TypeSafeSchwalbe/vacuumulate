@@ -6,7 +6,7 @@ use vacuumulate::renderer::(CAMERA_POSITION, CAMERA_LOOK_AT, CAMERA_UP)
 
 use std::(math, arr, iter, time, opt, str)
 use std::rng::Random
-use obem::(lav, input, afx, data)
+use obem::(vec, input, afx, data)
 
 pub proc create() {
     val gamestate = {
@@ -115,10 +115,10 @@ proc robot_movement(robot) {
         }
         val velocity = robot
             |> robot_direction()
-            |> lav::scale(ROBOT_MOVEMENT_SPEED)
-            |> lav::scale(obem::delta_time())
+            |> vec::scale(ROBOT_MOVEMENT_SPEED)
+            |> vec::scale(obem::delta_time())
         robot.position = robot.position
-            |> lav::add(velocity)
+            |> vec::add(velocity)
         robot.audio_source .> position(robot.position)
         case !in_room(robot.position, 0.6) -> {
             robot.update = robot_reversal(robot)
@@ -137,7 +137,7 @@ proc robot_reversal(robot) {
             robot.update = robot_movement(robot)
             // give it a small boost so it doesn't get stuck
             robot.position = robot.position
-                |> lav::add(robot |> robot_direction() |> lav::scale(0.1))
+                |> vec::add(robot |> robot_direction() |> vec::scale(0.1))
         }
     }
 }
@@ -152,7 +152,7 @@ proc robot_vibrate(gamestate) {
         .> play(res::VIBRATE_SOUND .> get())
     return || {
         robot.position = start_position
-            |> lav::add(lav::scale([
+            |> vec::add(vec::scale([
                 gamestate.rng .> flt_in(-1.0, 1.0),
                 0.0,
                 gamestate.rng .> flt_in(-1.0, 1.0)
@@ -228,8 +228,8 @@ proc add_debris(gamestate, count) {
 
 proc picked_up(pos, robot) {
     val distance = robot.position
-        |> lav::sub(pos)
-        |> lav::len()
+        |> vec::sub(pos)
+        |> vec::len()
     return distance < 0.4
 }
 
@@ -329,7 +329,7 @@ proc update_obstacles(gamestate) {
 
 proc create_smoke(gamestate, position) {
     val final_position = position
-        |> lav::add([
+        |> vec::add([
             gamestate.rng .> flt_in(-0.5, 0.5),
             0.0,
             gamestate.rng .> flt_in(-0.5, 0.5)

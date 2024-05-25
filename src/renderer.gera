@@ -6,7 +6,7 @@ use vacuumulate::gamestate::DATA_HIGHSCORE
 
 use std::(arr, iter, str, opt)
 use obem::gfx::(Shader, Surface, Mesh)
-use obem::(lam, lav, data)
+use obem::(mat, vec, data)
 
 pub val CAMERA_POSITION = [0.0, 10.0, 10.0]
 pub val CAMERA_LOOK_AT = [0.0, 0.0, -3.0]
@@ -14,7 +14,7 @@ pub val CAMERA_UP = [0.0, 1.0, 0.0]
 
 pub proc create() {
     return {
-        object_camera = lam::iden4x4(),
+        object_camera = mat::iden4x4(),
         shader = Shader::new(
             "
                 attribute vec3 pos;
@@ -47,8 +47,8 @@ proc set_object_camera(renderer) {
     val fov = std::math::PI * 0.3
     val aspect_ratio = (Surface::main() .> width() |> as_flt())
         / (Surface::main() .> height() |> as_flt())
-    val camera_matrix = lam::perspective(fov, aspect_ratio, 0.01, 1000.0)
-       |> lam::mul(lam::look_at(CAMERA_POSITION, CAMERA_LOOK_AT, CAMERA_UP))
+    val camera_matrix = mat::perspective(fov, aspect_ratio, 0.01, 1000.0)
+       |> mat::mul(mat::look_at(CAMERA_POSITION, CAMERA_LOOK_AT, CAMERA_UP))
     renderer.object_camera = camera_matrix
 }
 
@@ -62,26 +62,26 @@ proc render_object(renderer, model_matrix, texture, mesh, depth_test) {
 
 proc as_ndc(pixel_pos) {
     return pixel_pos
-        |> lav::div([
+        |> vec::div([
             Surface::main() .> width() |> as_flt(),
             Surface::main() .> height() |> as_flt()
         ])
-        |> lav::mul([2.0, 2.0]) |> lav::sub([1.0, 1.0])
-        |> lav::mul([1.0, -1.0])
+        |> vec::mul([2.0, 2.0]) |> vec::sub([1.0, 1.0])
+        |> vec::mul([1.0, -1.0])
 }
 
 proc render_sprite(renderer, position, size, texture, src_pos, src_size) {
     // this could be optimized by using a singular mesh with 
     // a model matrix and an orthographic projection matrix
     val top_left = position |> as_ndc()
-    val bottom_right = position |> lav::add(size) |> as_ndc()
+    val bottom_right = position |> vec::add(size) |> as_ndc()
     val uv_bottom_left = src_pos
-        |> lav::div([
+        |> vec::div([
             texture .> width() |> as_flt(), texture .> height() |> as_flt()
         ])
     val uv_top_right = src_pos
-        |> lav::add(src_size)
-        |> lav::div([
+        |> vec::add(src_size)
+        |> vec::div([
             texture .> width() |> as_flt(), texture .> height() |> as_flt()
         ])
     val mesh = Mesh::new(
@@ -95,9 +95,9 @@ proc render_sprite(renderer, position, size, texture, src_pos, src_size) {
             3, 1, 2
         ]
     )
-    renderer.shader .> uniform_mat("u_model", lam::iden4x4())
+    renderer.shader .> uniform_mat("u_model", mat::iden4x4())
     renderer.shader .> uniform_tex("u_tex", texture)
-    renderer.shader .> uniform_mat("u_view_projection", lam::iden4x4())
+    renderer.shader .> uniform_mat("u_view_projection", mat::iden4x4())
     Surface::main() 
         .> draw_mesh(mesh, [3, 2], renderer.shader, false)
 }
@@ -115,7 +115,7 @@ proc render_text(renderer, position, size, text) {
             |> str::find(c) |> iter::next()
             |> opt::unwrap_or(length(FONT_CHARS))
         val drawn_pos = position
-            |> lav::add([as_flt(i) * char_offset, 0.0])
+            |> vec::add([as_flt(i) * char_offset, 0.0])
         val drawn_size = [char_width, size]
         val src_pos = [as_flt(c_font_idx) * 8.0, 0.0]
         val src_size = [7.0, 9.0]
@@ -134,18 +134,18 @@ proc rendered_text_width(size, text) {
 
 proc render_room(renderer) {
     renderer |> render_object(
-        lam::iden4x4()
-            |> lam::scale([10.0, 10.0, 10.0, 1.0])
-            |> lam::mul(lam::translation([0.0, -0.01, 0.0])),
+        mat::iden4x4()
+            |> mat::scale([10.0, 10.0, 10.0, 1.0])
+            |> mat::mul(mat::translation([0.0, -0.01, 0.0])),
         res::ROOM_TEXTURE .> get(), res::ROOM_MODEL .> get(),
         true
     )
 }
 
 proc render_robot(renderer, robot) {
-    val model_matrix = lam::translation(robot.position)
-        |> lam::rotate_y(-robot.rotation)
-        |> lam::rotate_y(std::math::PI)
+    val model_matrix = mat::translation(robot.position)
+        |> mat::rotate_y(-robot.rotation)
+        |> mat::rotate_y(std::math::PI)
     renderer |> render_object(
         model_matrix, res::ROBOT_TEXTURE .> get(), res::ROBOT_MODEL .> get(),
         true
@@ -153,8 +153,8 @@ proc render_robot(renderer, robot) {
 }
 
 proc render_debris(renderer, debris) {
-    val model_matrix = lam::translation(debris.position)
-        |> lam::rotate_y(debris.rotation)
+    val model_matrix = mat::translation(debris.position)
+        |> mat::rotate_y(debris.rotation)
     renderer |> render_object(
         model_matrix, debris.texture, res::DEBRIS_MODEL .> get(),
         true
@@ -162,8 +162,8 @@ proc render_debris(renderer, debris) {
 }
 
 proc render_obstacle(renderer, obstacle) {
-    val model_matrix = lam::translation(obstacle.position)
-        |> lam::rotate_y(obstacle.rotation)
+    val model_matrix = mat::translation(obstacle.position)
+        |> mat::rotate_y(obstacle.rotation)
     renderer |> render_object(
         model_matrix, obstacle.texture, obstacle.model,
         true
@@ -172,8 +172,8 @@ proc render_obstacle(renderer, obstacle) {
 
 proc render_smoke(renderer, smoke) {
     val scale_factor = 1.0 + smoke.position[1]
-    val model_matrix = lam::translation(smoke.position)
-            |> lam::scale([scale_factor, scale_factor, scale_factor, 1.0])
+    val model_matrix = mat::translation(smoke.position)
+            |> mat::scale([scale_factor, scale_factor, scale_factor, 1.0])
     renderer |> render_object(
         model_matrix, res::SMOKE_TEXTURE .> get(), res::SMOKE_MODEL .> get(),
         false
@@ -181,8 +181,8 @@ proc render_smoke(renderer, smoke) {
 }
 
 proc render_explosion(renderer, explosion) {
-    val model_matrix = lam::translation(explosion.position)
-            |> lam::scale([explosion.size, explosion.size, explosion.size, 1.0])
+    val model_matrix = mat::translation(explosion.position)
+            |> mat::scale([explosion.size, explosion.size, explosion.size, 1.0])
     renderer |> render_object(
         model_matrix,
         res::EXPLOSION_TEXTURE .> get(), res::EXPLOSION_MODEL .> get(),
@@ -221,7 +221,7 @@ proc render_menu(renderer, menu) {
 
 pub proc render(renderer, gamestate) {
     val background = [95.0, 87.0, 79.0, 255.0]
-        |> lav::scale(1.0 / 255.0)
+        |> vec::scale(1.0 / 255.0)
     Surface::main() .> clear_color(background)
     renderer |> set_object_camera()
     renderer |> render_room()
